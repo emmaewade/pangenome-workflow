@@ -1,0 +1,212 @@
+'''
+threads: 
+    8
+resources:
+    slurm_partition= 
+    runtime=
+    constraint=
+    mem_mb= 
+    mem_mb_per_cpu=
+    tasks=
+    cpus_per_task=
+    nodes=
+    slurm_extra="
+''' 
+
+container: "docker://emmaewade/pg-project-env:latest"
+#conda: "envs/environment.yml"
+
+accsofinterest='None'
+taxons='613'
+
+  
+rule all:
+    input:
+        'results/master.csv',
+        "summaries/download_gbff.txt",
+        "summaries/convert.txt",
+        'results/master_ftp_paths.txt',
+        "results/roary/testing/err.txt",
+        "results/roary/testing/out.txt"
+        
+        
+rule make_table: 
+    input:
+        script = "workflow/scripts/make_table_main.py",
+        gen = "data/preset/assembly_summary_genbank.txt",
+        ref = "data/preset/assembly_summary_refseq.txt",
+        names = "data/preset/names.dmp",
+        nodes = "data/preset/nodes.dmp"
+        #also need to add accs of interest
+    output:
+        'results/master.csv',
+        'results/master_ftp_paths.txt'
+    conda: 
+        "envs/environment.yml"
+    threads: 
+        8
+    #conda:
+        #"/home/x-ewade/.conda/envs/2021.05-py38/pg"
+    shell:
+        """
+        echo "Starting make table..."
+        python {input.script} \
+        --accsofinterest {accsofinterest} \
+        --taxons {taxons} \
+        --outdir results/ \
+        --outfilename master 
+        
+        cut -d "," -f8 results/master.csv | tail -n +2 > results/master_ftp_paths.txt #get ftp paths from master file  #EDIT TO ONLY GET OF INTEREST
+        """
+
+
+
+rule download_and_convert_gbff:
+    input:
+        script = "workflow/scripts/bp_genbank2gff3.pl",
+        ftp_paths = "results/master_ftp_paths.txt" 
+    output:
+        #gbff_dir = directory("results/gbff-downloads"),
+        #processed_dir = directory("results/processed_files"),
+        gbff_summary = ("summaries/download_gbff.txt"),
+        proc_summary = ("summaries/convert.txt")
+    conda:
+        "envs/perl-env.yml" #need to check up on
+    threads: 
+        8
+    shell:
+        """
+        echo "Starting GBFF download and conversion..."
+        # Input file containing FTP paths, one per line
+        # Loop over each line in the input file
+        gbff_dir="results/gbff-downloads"
+        processed_dir="results/processed_files"
+        mkdir -p $gbff_dir
+        mkdir -p $processed_dir
+        
+        
+        while read line
+        do
+            # Download the directory listing using curl and filter it for *.gbff files
+            #filenames=$(curl -s $line/ | grep -oP '(?<=href=")[^"]*genomic\.gbff')
+            filenames=$(curl -s $line/ | pcregrep -o '(?<=href=")[^"]*genomic\.gbff')
+        
+            # Loop over each filename in the filtered directory listing
+            for filename in $filenames
+            do
+                # Download the file using curl
+                curl -o $gbff_dir/$filename".gz" $line/$filename".gz"
+                # Convert gbff file to gff
+                perl {input.script} $gbff_dir/"$filename".gz --outdir  $processed_dir --quiet
+            done
+        
+        done < {input.ftp_paths}
+        
+        mkdir -p summaries/
+        ls $gbff_dir > {output.gbff_summary}
+        ls $processed_dir > {output.proc_summary}
+        """
+
+
+rule run_roary:
+    input:
+        proc_summary = ("summaries/convert.txt")
+    output:
+        #outdir = directory("results/roary/testing"),
+        err = "results/roary/testing/err.txt",
+        out = "results/roary/testing/out.txt"
+    conda:
+        "envs/roary-env.yml"
+    threads: 
+        8
+    shell:
+        """
+        echo "Starting roary..."
+        outdir='results/roary/testing'
+        mkdir -p $outdir
+        echo "Made dir.."
+
+        #-r = create R plots --> need to load R and ggplot2??
+        #-p = number of threads
+        #-e --mafft a multiFASTA alignment of core genes using MAFFT
+        #-i = minimum percentage identity for blastp
+        #-cd = percentage of isolates a gene must be in to be core
+        # -f = output directory
+        
+        roary -r -p 30 -e --mafft -i 80 -cd 80 \
+        -f $outdir \
+        results/processed-files/* \
+        > $outdir/out.txt 2> $outdir/err.txt
+        """    
+        
+        
+'''
+#get intermediate step that chooses what to download
+rule download_gbff:
+    input:
+        script = "workflow/scripts/job1_download_gbff.py",
+        master = "results/master.csv" 
+    output:
+        dir = directory("results/gbff-downloads/"),
+        summary = ("summaries/download_gbff.txt")
+    conda:
+        "envs/environment.yml"
+    threads: 
+        8
+    shell:
+        """
+        echo "Starting download..."
+        mkdir {output.dir}
+        python {input.script} \
+            --downloadsuffix genomic.gbff.gz \
+            --masterfile {input.master} \
+            --outdir {output.dir} \
+            --databank Genbank \
+            --filtercolumn interest_assembly_accession
+            
+        ls {output.dir} > {output.summary}  
+        """   
+
+
+
+rule convert_gbff_to_gff:
+    input:
+        #dir = directory(),
+        script = "workflow/scripts/bp_genbank2gff3.pl",
+        summary = ("summaries/download_gbff.txt")
+    output:
+        dir = directory("data/processed-files"),
+        summary = ("summaries/convert_gbff.txt")
+    conda:
+        "envs/roary-env.yml"
+    shell:
+        """
+        echo "Starting conversion..."
+        mkdir results/processed-files
+        perl {input.script} -s --quiet --dir "results/gbff-downloads/" --outdir {output.dir}
+        
+        ls {output.dir} > {output.summary} 
+        """   
+
+
+ 
+rule download_for_abyss_fac
+rule abyss_fac:
+    input:
+        master = "master.csv"
+    output:
+        #todo
+    conda:
+    shell:
+        
+        mkdir -p /anvil/projects/x-mcb200143/pg_project/daily/1113/strains_asm_stats
+        cd /anvil/projects/x-mcb200143/pg_project/data/ftp_downloads
+
+        module load biocontainers/default
+        module load abyss/2.3.4
+
+        export -f abyss-fac
+        
+'''
+
+        

@@ -1,0 +1,10 @@
+channels:
+  - defaults
+dependencies:
+  - python
+  - pandas
+  - bs4
+  - biopython
+  - dos2unix
+  - requests
+  - urllib3

@@ -1,0 +1,8 @@
+name: base
+channels:
+  - bioconda
+  - conda-forge
+  - defaults
+  - r
+dependencies:
+  - roary
