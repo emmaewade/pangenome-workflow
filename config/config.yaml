@@ -1,0 +1,26 @@
+###This file has not yet been implemented!####
+
+#path of file with accessions of interest or 'None'
+accsofinterest: 'None'
+
+#accession IDs of taxons of interest
+taxons: '613'
+
+#master file name
+master: 'master.csv'
+
+#biosample parse <- not yet implemented and VERY slow
+biosample: False
+
+#download from genbank or refseq <- not yet implemented
+genbank_or_refseq: 'genbank'
+
+###can add roary arguments <- also not yet implemented
+roary: 
+    r : True
+    p : 30
+    e : mafft
+    cd : 80
+    i : 80
+    f: outdir
+
