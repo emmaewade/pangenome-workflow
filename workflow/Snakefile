@@ -53,6 +53,8 @@ rule make_table:
         #"/home/x-ewade/.conda/envs/2021.05-py38/pg"
     shell:
         """
+        mkdir -p results/ 
+        
         echo "Starting make table..."
         python {input.script} \
         --accsofinterest {accsofinterest} \
