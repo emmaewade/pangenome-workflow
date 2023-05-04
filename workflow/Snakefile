@@ -16,8 +16,8 @@ resources:
 container: "docker://emmaewade/pg-project-env:latest"
 #conda: "envs/environment.yml"
 
-accsofinterest='None'
-taxons='613'
+accsofinterest='data/accessions_of_interest.txt'
+taxons='1301' #<- streptococcus #613 
 
 '''
 ##### setup report #####
