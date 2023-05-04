@@ -26,10 +26,10 @@ configfile: "config/config.yaml"
 
 rule all:
     input:
-        'results/master.csv',
-        "summaries/download_gbff.txt",
-        "summaries/convert.txt",
-        'results/master_ftp_paths.txt',
+        #'results/master.csv',
+        #"summaries/download_gbff.txt",
+        #"summaries/convert.txt",
+        #'results/master_ftp_paths.txt',
         "results/roary/testing/err.txt",
         "results/roary/testing/out.txt"
         
@@ -40,11 +40,10 @@ rule make_table:
         gen = "data/preset/assembly_summary_genbank.txt",
         ref = "data/preset/assembly_summary_refseq.txt",
         names = "data/preset/names.dmp",
-        nodes = "data/preset/nodes.dmp"
-        #also need to add accs of interest
+        nodes = "data/preset/nodes.dmp",
+        accsofinterest = {accsofinterest} 
     output:
         'results/master.csv',
-        'results/master_ftp_paths.txt'
     conda: 
         "envs/environment.yml"
     threads: 
@@ -53,8 +52,8 @@ rule make_table:
         #"/home/x-ewade/.conda/envs/2021.05-py38/pg"
     shell:
         """
-        mkdir -p results/ 
-        
+	mkdir -p results/
+
         echo "Starting make table..."
         python {input.script} \
         --accsofinterest {accsofinterest} \
@@ -62,10 +61,21 @@ rule make_table:
         --outdir results/ \
         --outfilename master 
         
-        cut -d "," -f8 results/master.csv | tail -n +2 > results/master_ftp_paths.txt #get ftp paths from master file  #EDIT TO ONLY GET OF INTEREST
         """
 
+rule get_interest_ftp: 
+    input: 
+        'results/master.csv'
+    output: 
+        'results/of_interest.csv',
+        'results/master_ftp_paths.txt'
 
+    shell: 
+        '''
+        #cut -d ',' -f16 /results/master.csv | awk '$1 >= 1' > /results/of_interest.csv
+        awk -F ',' '$16!="" {{print}}' results/master.csv > results/of_interest.csv #only get of interest rows of table
+        cut -d "," -f8 results/of_interest.csv | tail -n +2 > results/master_ftp_paths.txt #get ftp paths from master file  #EDIT TO ONLY GET OF INTEREST
+        '''
 
 rule download_and_convert_gbff:
     input:
