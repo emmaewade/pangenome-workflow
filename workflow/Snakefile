@@ -13,14 +13,14 @@ resources:
     slurm_extra="
 ''' 
 
-container: "docker://emmaewade/pg-project-env:latest"
+#container: "docker://emmaewade/pg-project-env:latest"
 #conda: "envs/environment.yml"
 
-accsofinterest='data/accessions_of_interest.txt'
-taxons='1301' #<- streptococcus #613 
+accsofinterest='data/accessions_of_interest.txt' #<--- to change the accessions of interest
+taxons='1301' #<-----to change taxon ID
 
 '''
-##### setup report #####
+##### TO DO Configuration File #####
 configfile: "config/config.yaml"
 '''
 
@@ -30,8 +30,10 @@ rule all:
         #"summaries/download_gbff.txt",
         #"summaries/convert.txt",
         #'results/master_ftp_paths.txt',
-        "results/roary/testing/err.txt",
-        "results/roary/testing/out.txt"
+        #"results/roary/testing/err.txt",
+        # results/roary/testing/out.txt"
+        gbff_summary = ("summaries/download_gbff.txt"),
+        proc_summary = ("summaries/convert.txt")
         
         
 rule make_table: 
@@ -104,8 +106,8 @@ rule download_and_convert_gbff:
         while read line
         do
             # Download the directory listing using curl and filter it for *.gbff files
-            #filenames=$(curl -s $line/ | grep -oP '(?<=href=")[^"]*genomic\.gbff')
-            filenames=$(curl -s $line/ | pcregrep -o '(?<=href=")[^"]*genomic\.gbff')
+            filenames=$(curl -s $line/ | grep -oP '(?<=href=")[^"]*genomic\.gbff')
+            #filenames=$(curl -s $line/ | pcregrep -o '(?<=href=")[^"]*genomic\.gbff')
         
             # Loop over each filename in the filtered directory listing
             for filename in $filenames
@@ -123,13 +125,13 @@ rule download_and_convert_gbff:
         ls $processed_dir > {output.proc_summary}
         """
 
-
+'''
 rule run_roary:
     input:
         proc_summary = ("summaries/convert.txt")
     output:
         #outdir = directory("results/roary/testing"),
-        err = "results/roary/testing/err.txt",
+        #err = "results/roary/testing/err.txt",
         out = "results/roary/testing/out.txt"
     conda:
         "envs/roary-env.yml"
@@ -149,12 +151,9 @@ rule run_roary:
         #-cd = percentage of isolates a gene must be in to be core
         # -f = output directory
         
-        roary -r -p 30 -e --mafft -i 80 -cd 80 \
-        -f $outdir \
-        results/processed-files/* \
-        > $outdir/out.txt 2> $outdir/err.txt
+        roary -r -p 30 -e --mafft -i 80 -cd 80 -f $outdir results/processed_files/* > $outdir/out.txt 2> $outdir/err.txt
         """    
-        
+'''      
         
 '''
 #get intermediate step that chooses what to download
