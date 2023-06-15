@@ -11,8 +11,8 @@ import time
 
 '''
 python utils/main.py \
-    --accsofinterest ../data/accessions_of_interest.txt \
-    --taxons 'Streptococcus' \
+    --accortaxon accession \
+    --filename ../data/accessions_of_interest.txt \
     --outdir results/ \
     --outfilename testing_masterfile 
 
@@ -21,61 +21,77 @@ python utils/main.py \
 
 def parse_arguments():
     parser = argparse.ArgumentParser("")
-    parser.add_argument('--accsofinterest', help='file name of accessions of interest', default=None, required=True, type=str) #eventually change to filename
-    parser.add_argument('--taxons', help='taxons IDs to parse', default=None, required=False, type=str) #eventually change to filename
+    parser.add_argument('--filename', help='file name of accessions of interest', default="None", required=False, type=str) #eventually change to filename
+    #parser.add_argument('--taxons', help='taxons IDs to parse', default="None", required=False, type=str) #eventually change to filename
     parser.add_argument('--outdir', help="Master file output directory", default=".", type=str)
     parser.add_argument('--outfilename', default="master_file", type=str)
-    parser.add_argument('--parse_biosample', action='store_true')
+    #parser.add_argument('--parse_biosample', action='store_true')
+    parser.add_argument('--accortaxon', choices=['accession', 'taxonomy'], required=True, type=str) #eventually change to filename
     # parser.add_argument('--')
     args = parser.parse_args()
     return args
 
 def main():
     args = parse_arguments()
-    print(args)
+    #print(args)
+    
     
     #if no taxon provided: parse for species ids
-    if args.taxons != None and args.accsofinterest != 'None': 
-        #species_ids = parse_taxon.get_species_ids(args.taxons)
-        #rank_name = "species"  # Specify the rank you want to search for 
-        #taxon_id = "616" # Taxon ID for Serratia
-        # Example usage
-        #taxon_id = '1304'  # Example taxon ID to search for
-        #rank_name = 'species'  # Example rank name to search for
-        species_ids = parse_taxon.get_species_ids(args.taxons)
-        print(species_ids)
+    #if args.taxons != "None" and args.accsofinterest != "None": 
+    if False:
+        print(f"\nSearching for taxon: {args.taxons}")
+        print(f"Interested in accessions: {args.accsofinterest}\n")
+        
+        with open(args.taxons, 'r') as file:
+            taxon_ids = file.readlines()
+        taxon_ids = [line.strip() for line in taxon_ids]
+        
+        species_ids = parse_taxon.get_species_ids(taxon_ids)
+        #print(species_ids)
         in_genbank = make_genbank_refseq_file.genbank_table(species_ids, 'taxid') 
         in_refseq = make_genbank_refseq_file.refseq_table(species_ids, 'taxid') 
+        
+        if in_genbank.empty and in_refseq.empty : raise Exception('No accessions found!')
+        
         gen_ref = make_genbank_refseq_file.join_tables(in_genbank, in_refseq)
         joined = make_genbank_refseq_file.join_experiment_tables(gen_ref, args.accsofinterest)
         
-    ###doesn't work!####
-    elif args.taxons == None and args.accsofinterst != None: 
+    elif args.accortaxon == "accession":
+        print("\nNot searching taxonomy")
+        print(f"Interested in accessions: {args.filename}\n")
         #read in accessions
         #accession_ids = open(args.accsofinterest).readlines()
-        with open(args.accsofinterest, 'r') as file:
+        with open(args.filename, 'r') as file:
             accession_ids = file.readlines()
         accession_ids = [line.strip() for line in accession_ids]
         in_genbank = make_genbank_refseq_file.genbank_table(accession_ids, 'assembly_accession')
         in_refseq = make_genbank_refseq_file.refseq_table(accession_ids, 'assembly_accession')
-        gen_ref = make_genbank_refseq_file.join_tables(in_genbank, in_refseq)
-        joined = make_genbank_refseq_file.join_experiment_tables(gen_ref, args.accsofinterest) #doesn't work!
         
-    elif args.taxons != None and args.accsofinterest == 'None': 
+        if in_genbank.empty and in_refseq.empty : raise Exception('No accessions found!')
+        
+        gen_ref = make_genbank_refseq_file.join_tables(in_genbank, in_refseq)
+        joined = make_genbank_refseq_file.join_experiment_tables(gen_ref, args.filename)
+        
+    elif args.accortaxon == "taxonomy": 
+        
+        with open(args.filename, 'r') as file:
+            taxon_ids = file.readlines()
+        taxon_ids = [line.strip() for line in taxon_ids]
+        
+        print(f"\nSearching for taxon: {args.filename}")
+        print(f"Taxons {args.filename} are of interest\n")
         #rank_name = 'genus'  # Example rank name to search for
-        species_ids = parse_taxon.get_species_ids(args.taxons)
-        print(species_ids)
+        species_ids = parse_taxon.get_species_ids(taxon_ids)
         in_genbank = make_genbank_refseq_file.genbank_table(species_ids, 'taxid') 
         in_refseq = make_genbank_refseq_file.refseq_table(species_ids, 'taxid') 
+        
+        if in_genbank.empty and in_refseq.empty : raise Exception('No accessions found!')
+        
         gen_ref = make_genbank_refseq_file.join_tables(in_genbank, in_refseq)
-        joined = make_genbank_refseq_file.join_experiment_tables(gen_ref, args.accsofinterest) #just makes interest a copy of genbank
+        joined = make_genbank_refseq_file.join_experiment_tables(gen_ref, 'None') #just makes interest a copy of genbank
     
-    
-    #joined = make_genbank_refseq_file.join_experiment_tables(species_ids) ###need to an argument for my data
-    if args.parse_biosample : 
-        metadata = parse_biosample.parse_entrez(joined['biosample'],endcount=None)
-        joined = pd.merge(joined, metadata, on = 'biosample', how = 'outer')
-    
+    else: raise Exception("Incorrect input!")
+        
     save = True
     if save:
         joined.to_csv(f"{args.outdir}/{args.outfilename}.csv")

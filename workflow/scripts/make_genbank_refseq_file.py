@@ -17,12 +17,13 @@ def genbank_table(ids, searchcol):
     in_genbank = pd.DataFrame()
     
     #read in file by chunks
-    for chunk in pd.read_csv(report_file, header=None, index_col=False, sep="\t", iterator=True, skiprows=2,chunksize=chunksize, nrows = nrows, dtype='unicode'):
+    for chunk in pd.read_csv(report_file, header=0, index_col=False, sep="\t", iterator=True, skiprows=[0],chunksize=chunksize, nrows = nrows, dtype='unicode'):
         #name columns
-        chunk.columns = ['assembly_accession', 'bioproject','biosample','wgs_master','refseq_category','taxid', 'species_taxid','organism_name','infraspecific_name','isolate','version_status','assembly_level','release_type','genome_rep','seq_rel_date','asm_name', 'submitter','gbrs_paired_asm','paired_asm_comp','ftp_path','excluded_from_refseq','relation_to_type_material','asm_not_live_date']
+        #chunk.columns = ['assembly_accession', 'bioproject','biosample','wgs_master','refseq_category','taxid', 'species_taxid','organism_name','infraspecific_name','isolate','version_status','assembly_level','release_type','genome_rep','seq_rel_date','asm_name', 'asm_submitter','gbrs_paired_asm','paired_asm_comp','ftp_path','excluded_from_refseq','relation_to_type_material','asm_not_live_date']
+        #bioproject      biosample       wgs_master      refseq_category taxid   species_taxid   organism_name   infraspecific_name      isolate version_status  assembly_level  release_type    genome_rep      seq_rel_date    asm_name        asm_submitter   gbrs_paired_asm paired_asm_comp ftp_path        excluded_from_refseq    relation_to_type_material       asm_not_live_date       assembly_type   group   genome_size     genome_size_ungapped    gc_percent      replicon_count  scaffold_count  contig_count    annotation_provider     annotation_name annotation_date total_gene_count        protein_coding_gene_count       non_coding_gene_count   pubmed_id
         #drop unneeded columns
-        chunk.drop(['infraspecific_name','isolate','version_status','refseq_category','wgs_master','assembly_level','release_type','genome_rep','seq_rel_date','asm_name', 'submitter','gbrs_paired_asm','paired_asm_comp','relation_to_type_material','asm_not_live_date'], axis = 1, inplace = True)
-        #filter by species
+        chunk.drop(['infraspecific_name','isolate','version_status','refseq_category','wgs_master','assembly_level','release_type','genome_rep','seq_rel_date','asm_name', 'asm_submitter','gbrs_paired_asm','paired_asm_comp','relation_to_type_material','asm_not_live_date'], axis = 1, inplace = True)
+        chunk = chunk.rename(columns={'#assembly_accession': 'assembly_accession'})
         #chunk = chunk[chunk['organism_name'].str.startswith(species)] # %in% taxon_ids
         chunk = chunk[chunk[searchcol].isin(ids)]
         #add chunk to dataframe
@@ -30,6 +31,14 @@ def genbank_table(ids, searchcol):
             in_genbank = chunk
         else:
             in_genbank = pd.concat([in_genbank,chunk])
+            
+    if in_genbank.empty:
+        print("\nNo genbank accessions found\n")
+        in_genbank = pd.DataFrame(columns=['assembly_accession', 'bioproject','biosample', 'taxid', 'species_taxid','organism_name', 'ftp_path','excluded_from_refseq'])
+    
+    else:
+        print("---------------\nFound in genbank...\n---------------")
+        print(in_genbank)
             
     return in_genbank
     
@@ -42,17 +51,25 @@ def refseq_table(ids, searchcol):
     nrows = None #nrows = args.nrows
     species = "Streptococcus " #species = args.species
     in_refseq = pd.DataFrame()
-    for chunk in pd.read_csv(report_file, header=None, index_col=False, sep="\t", iterator=True, skiprows=2,chunksize=chunksize, nrows = nrows, dtype='unicode'):
-        chunk.columns = ['assembly_accession', 'bioproject','biosample','wgs_master','refseq_category','taxid', 'species_taxid','organism_name','infraspecific_name','isolate','version_status','assembly_level','release_type','genome_rep','seq_rel_date','asm_name', 'submitter','gbrs_paired_asm','paired_asm_comp','ftp_path','excluded_from_refseq','relation_to_type_material','asm_not_live_date']
-        chunk.drop(['infraspecific_name','isolate','version_status','refseq_category','wgs_master','assembly_level','release_type','genome_rep','seq_rel_date','asm_name', 'submitter','gbrs_paired_asm','paired_asm_comp','relation_to_type_material','asm_not_live_date'], axis = 1, inplace = True)
+    for chunk in pd.read_csv(report_file, header=0, index_col=False, sep="\t", iterator=True, skiprows=[0],chunksize=chunksize, nrows = nrows, dtype='unicode'):
+        #chunk.columns = ['assembly_accession', 'bioproject','biosample','wgs_master','refseq_category','taxid', 'species_taxid','organism_name','infraspecific_name','isolate','version_status','assembly_level','release_type','genome_rep','seq_rel_date','asm_name', 'submitter','gbrs_paired_asm','paired_asm_comp','ftp_path','excluded_from_refseq','relation_to_type_material','asm_not_live_date']
+        chunk.drop(['infraspecific_name','isolate','version_status','refseq_category','wgs_master','assembly_level','release_type','genome_rep','seq_rel_date','asm_name', 'asm_submitter','gbrs_paired_asm','paired_asm_comp','relation_to_type_material','asm_not_live_date'], axis = 1, inplace = True)
         #if args.chrs is not None: chunk = chunk[chunk['Chr'].isin(args.chrs)]
         #chunk = chunk[chunk['organism_name'].str.startswith(species)]
+        chunk = chunk.rename(columns={'#assembly_accession': 'assembly_accession'})
         chunk = chunk[chunk[searchcol].isin(ids)]
         if in_refseq is None:
             in_refseq = chunk
         else:
             in_refseq = pd.concat([in_refseq,chunk])
-    
+            
+    if in_refseq.empty:
+        print("\nNo refseq accessions found\n")
+        in_refseq = pd.DataFrame(columns=['assembly_accession', 'bioproject','biosample', 'taxid', 'species_taxid','organism_name', 'ftp_path','excluded_from_refseq'])
+    else:
+        print("---------------\nFound in refseq...\n---------------")
+        print(in_refseq)
+        
     return in_refseq
 
 
@@ -62,24 +79,43 @@ def join_tables(in_genbank, in_refseq):
     joined.rename(columns = {'assembly_accession_x':'genbank_assembly_accession', 'assembly_accession_y':'refseq_assembly_accession', 'ftp_path_x':'genbank_ftp_path', 'ftp_path_y':'refseq_ftp_path' }, inplace = True)
     return joined
 
-#needs to be more dynamic eventually###   
-def join_experiment_tables(joined, filename = "/anvil/projects/x-mcb200143/pg_project/data/accessions_of_interest.txt"):
-
+def join_experiment_tables(joined, filename):
+    
     if filename == 'None': 
-        joined[['genbank_assembly_accession_base', 'genbank_assembly_accession_vers']] = joined['genbank_assembly_accession'].str.split('.', 1, expand=True)
-        joined[['refseq_assembly_accession_base', 'refseq_assembly_accession_vers']] = joined['refseq_assembly_accession'].str.split('.', 1, expand=True)
         
+        try: joined[['genbank_assembly_accession_base', 'genbank_assembly_accession_vers']] = joined['genbank_assembly_accession'].str.split('.', n = 1, expand=True)
+        except:  
+            joined['genbank_assembly_accession_base'] = '' 
+            joined['genbank_assembly_accession_vers'] = ''
+        
+        try: joined[['refseq_assembly_accession_base', 'refseq_assembly_accession_vers']] = joined['refseq_assembly_accession'].str.split('.', n = 1, expand=True)
+        except: 
+            joined['refseq_assembly_accession_base'] = '' 
+            joined['refseq_assembly_accession_vers'] = ''
+            
         joined[['interest_assembly_accession', 'interest_assembly_accession_base', 'interest_assembly_accession_vers']] = joined[['genbank_assembly_accession', 'genbank_assembly_accession_base', 'genbank_assembly_accession_vers']]
         return joined
+        
     else: 
         
         int_acc = pd.read_csv(filename, header=None, index_col=False, sep="/n", dtype='unicode')
         int_acc.columns = ['interest_assembly_accession']
-        joined[['genbank_assembly_accession_base', 'genbank_assembly_accession_vers']] = joined['genbank_assembly_accession'].str.split('.', 1, expand=True)
-        joined[['refseq_assembly_accession_base', 'refseq_assembly_accession_vers']] = joined['refseq_assembly_accession'].str.split('.', 1, expand=True)
+        int_acc['interest_assembly_accession'] = int_acc['interest_assembly_accession'].astype(str)
         
-        int_acc[['interest_assembly_accession_base', 'interest_assembly_accession_vers']] = int_acc['interest_assembly_accession'].str.split('.', 1, expand=True)
+        try: joined[['genbank_assembly_accession_base', 'genbank_assembly_accession_vers']] = joined['genbank_assembly_accession'].str.split('.', n = 1, expand=True)
+        except:  
+            joined['genbank_assembly_accession_base'] = ''
+            joined['genbank_assembly_accession_vers'] = ''
         
+        try: joined[['refseq_assembly_accession_base', 'refseq_assembly_accession_vers']] = joined['refseq_assembly_accession'].str.split('.', n = 1, expand=True)
+        except: 
+            joined['refseq_assembly_accession_base'] = ''
+            joined['refseq_assembly_accession_vers'] = ''
+        
+        int_acc[['interest_assembly_accession_base', 'interest_assembly_accession_vers']] = int_acc['interest_assembly_accession'].str.split('.', n = 1, expand=True)
+        
+        joined['refseq_assembly_accession_base'] = joined['refseq_assembly_accession_base'].astype(str)
+        joined['genbank_assembly_accession_base'] = joined['genbank_assembly_accession_base'].astype(str)
         joined_ref = pd.merge(joined, int_acc, left_on=['refseq_assembly_accession_base'], right_on = ['interest_assembly_accession_base'], how = 'outer')
         #joined_ref.to_csv("joined_refseq.csv")
         joined_gen_ref = pd.merge(joined_ref, int_acc, left_on=['genbank_assembly_accession_base'], right_on = ['interest_assembly_accession_base'], how = 'outer')
