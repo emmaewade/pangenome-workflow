@@ -70,8 +70,7 @@ rule make_table:
         gen = "data/preset/assembly_summary_genbank.txt",
         ref = "data/preset/assembly_summary_refseq.txt",
         names = "data/preset/names.dmp",
-        nodes = "data/preset/nodes.dmp",
-        #accsofinterest = {accsofinterest} 
+        nodes = "data/preset/nodes.dmp"
     output:
         'results/{outname}/master.csv',
     conda: 
