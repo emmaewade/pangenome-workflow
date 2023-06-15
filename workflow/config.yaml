@@ -1,0 +1,55 @@
+---
+snakefile: Snakefile
+latency-wait: 60
+reason: True
+show-failed-logs: True
+keep-going: True
+printshellcmds: True
+
+
+# Variables ####
+config: 
+    - accortaxon='taxonomy' #options : accession or taxonomy
+    - filename='data/taxons.txt' # Streptococcus dysgalactiae subsp. dysgalactiae and Streptococcus agalactiae , file of accessions or file of taxons
+    - outname=['just_small_list']
+
+
+# Cluster submission
+jobname: "{rule}.{jobid}"              # Provide a custom name for the jobscript that is submitted to the cluster.
+max-jobs-per-second: 1                 #Maximal number of cluster/drmaa jobs per second, default is 10, fractions allowed.
+max-status-checks-per-second: 10       #Maximal number of job status checks per second, default is 10
+jobs: 400                              #Use at most N CPU cluster/cloud jobs in parallel.
+cluster: "sbatch $(workflow/scripts/parseJobID.sh {dependencies}) -q cpu -p shared --output=\"jobs/{rule}/slurm_%x_%j.out\" --error=\"jobs/{rule}/slurm_%x_%j.log\" --mem={resources.mem_mb} --time={resources.runtime} --parsable "
+cluster-status: "workflow/profile/status-sacct.sh" #  Use to handle timeout exception, do not forget to chmod +x
+immediate-submit: True
+notemp: True
+# singularity
+use-singularity: True
+#singularity-prefix: "~/.conda/envs/2021.05-py38/snakemake/bin/singularity"
+# Job resources
+#set-resources: #adjust to make specific to rules !! make_table, get_interest_ftp, download_and_convert_gbff, run_roary
+#  - make_table:mem_mb=10000
+#  - make_table:runtime=00:12:00
+#  - get_interest_ftp:mem_mb=1000
+#  - get_interest_ftp:runtime=00:12:00
+#  - get_interest_ftp:mem_mb=1000
+#  - download_and_convert_gbff:runtime=00:12:00
+#  - download_and_convert_gbff:mem_mb=1000
+#  - run_roary:runtime=00:12:00
+#  - run_roary:mem_mb=1000
+# For some reasons time needs quotes to be read by snakemake
+default-resources:
+  - mem_mb=10000 #10000 MB = 10 GB
+  - runtime=720 #720 seconds  = 12 hours
+  - tasks=1
+  - cpus_per_task=2
+  - nodes=1
+# Define the number of threads used by rules
+#set-threads:
+  #- make_table=1
+  #- get_interest_ftp=1
+  #- download_and_convert_gbff=1
+  #- run_roary=1
+#config["singularity"] = '~/.conda/envs/2021.05-py38/snakemake/bin/singularity'
+
+
