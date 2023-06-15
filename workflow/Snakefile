@@ -13,29 +13,57 @@ resources:
     slurm_extra="
 ''' 
 
-#container: "docker://emmaewade/pg-project-env:latest"
-#conda: "envs/environment.yml"
 
-accsofinterest='data/accessions_of_interest.txt' #<--- to change the accessions of interest
-taxons='1301' #<-----to change taxon ID
+########### Configuration  #############
 
-'''
-##### TO DO Configuration File #####
-configfile: "config/config.yaml"
-'''
+configfile: "workflow/profile/config.yaml"
 
+outname=config["outname"]
+accortaxon=config["accortaxon"]
+filename=config["filename"]
+
+########################################
+    
 rule all:
     input:
-        #'results/master.csv',
-        #"summaries/download_gbff.txt",
-        #"summaries/convert.txt",
-        #'results/master_ftp_paths.txt',
-        #"results/roary/testing/err.txt",
-        # results/roary/testing/out.txt"
-        gbff_summary = ("summaries/download_gbff.txt"),
-        proc_summary = ("summaries/convert.txt")
+        expand("results/{name}/roary/err.txt", name=config['outname']),
+        expand("results/{name}/roary/out.txt", name=config['outname'])
         
+rule download_preset: 
+    output:
+        gen = "data/preset/assembly_summary_genbank.txt",
+        ref = "data/preset/assembly_summary_refseq.txt",
+        names = "data/preset/names.dmp",
+        nodes = "data/preset/nodes.dmp"
+    threads:
+        8
+    #log: stdout="results/{outname}/logs/download_preset.stdout", stderr="results/{outname}/logs/download_preset.stderr"
+    shell:
+        '''
+        echo
+        echo "------------------------------------"
+        echo "| 0/7 Downloading necessary data... |"
+        echo "------------------------------------"
+        echo 
         
+        mkdir -p data
+        mkdir -p data/preset
+        
+        echo "Downloading Genbank assembly summary..."
+        curl -o {output.gen} "ftp://ftp.ncbi.nlm.nih.gov/genomes/ASSEMBLY_REPORTS/assembly_summary_genbank.txt"
+        
+        echo ""
+        echo "Download RefSeq assembly summary..."
+        curl -o {output.ref} "ftp://ftp.ncbi.nlm.nih.gov/genomes/refseq/assembly_summary_refseq.txt"
+        
+        echo ""
+        echo "Downloading NCBI Taxonomy data..."
+        curl -o data/preset/taxdump.tar.gz "ftp://ftp.ncbi.nih.gov/pub/taxonomy/taxdump.tar.gz"
+        cd data/preset/
+        tar -xzf taxdump.tar.gz names.dmp nodes.dmp
+        rm taxdump.tar.gz
+        '''   
+
 rule make_table: 
     input:
         script = "workflow/scripts/make_table_main.py",
@@ -43,106 +71,252 @@ rule make_table:
         ref = "data/preset/assembly_summary_refseq.txt",
         names = "data/preset/names.dmp",
         nodes = "data/preset/nodes.dmp",
-        accsofinterest = {accsofinterest} 
+        #accsofinterest = {accsofinterest} 
     output:
-        'results/master.csv',
+        'results/{outname}/master.csv',
     conda: 
         "envs/environment.yml"
     threads: 
         8
-    #conda:
-        #"/home/x-ewade/.conda/envs/2021.05-py38/pg"
+    #log: stdout="results/{outname}/logs/make_table.stdout", stderr="results/{outname}/logs/make_table.stderr"
+    params: 
+        accortaxon={accortaxon},
+        filename={filename},
+        outname={outname}
+    singularity:
+        "containers/first-environment.sif"
     shell:
         """
-	mkdir -p results/
-
-        echo "Starting make table..."
-        python {input.script} \
-        --accsofinterest {accsofinterest} \
-        --taxons {taxons} \
-        --outdir results/ \
-        --outfilename master 
+	    mkdir -p results
+	    mkdir -p results/{outname}
+	    
+        echo
+        echo "------------------------------"
+        echo "| 1/7 Starting make table... |"
+        echo "------------------------------"
+        echo 
+        
+        python3 {input.script} \
+        --accortaxon {params.accortaxon} \
+        --filename {params.filename} \
+        --outdir results/{params.outname} \
+        --outfilename master
         
         """
-
+        
 rule get_interest_ftp: 
     input: 
-        'results/master.csv'
+        'results/{outname}/master.csv'
     output: 
-        'results/of_interest.csv',
-        'results/master_ftp_paths.txt'
+        csv = 'results/{outname}/of_interest.csv',
+        paths = 'results/{outname}/master_ftp_paths.txt'
 
     shell: 
         '''
-        #cut -d ',' -f16 /results/master.csv | awk '$1 >= 1' > /results/of_interest.csv
-        awk -F ',' '$16!="" {{print}}' results/master.csv > results/of_interest.csv #only get of interest rows of table
-        cut -d "," -f8 results/of_interest.csv | tail -n +2 > results/master_ftp_paths.txt #get ftp paths from master file  #EDIT TO ONLY GET OF INTEREST
+        
+        echo
+        echo "----------------------------------------"
+        echo "| 2/7 Finding FTP paths of interest... |"
+        echo "----------------------------------------"
+        echo
+        
+        awk -F',' 'NR==1 {{ for(i=1; i<=NF; i++) {{ if ($i== "interest_assembly_accession") {{ column=i; break }} }} }} $column != "" {{ print }}' '{input}' > '{output.csv}'
+        awk -F',' 'NR==1 {{for (i=1; i<=NF; i++) {{ if ($i == "genbank_ftp_path") {{ column=i; break }} }} }} NR>1 {{ print $column }}' '{output.csv}' > '{output.paths}'
         '''
-
-rule download_and_convert_gbff:
+ 
+rule download_for_abyss_fac:
     input:
-        script = "workflow/scripts/bp_genbank2gff3.pl",
-        ftp_paths = "results/master_ftp_paths.txt" 
+        ftp_paths = "results/{outname}/master_ftp_paths.txt" 
     output:
-        #gbff_dir = directory("results/gbff-downloads"),
-        #processed_dir = directory("results/processed_files"),
-        gbff_summary = ("summaries/download_gbff.txt"),
-        proc_summary = ("summaries/convert.txt")
-    conda:
-        "envs/perl-env.yml" #need to check up on
+        abyss_summary = ("results/{outname}/summaries/fna_sum.txt")
+    params: 
+        outname={outname}
     threads: 
         8
     shell:
         """
-        echo "Starting GBFF download and conversion..."
+        
+        echo 
+        echo "-----------------------------------"
+        echo "| 3/7 Starting FASTA download... |"
+        echo "-----------------------------------"
+        echo
+        
+        
         # Input file containing FTP paths, one per line
         # Loop over each line in the input file
-        gbff_dir="results/gbff-downloads"
-        processed_dir="results/processed_files"
+        fna_dir="results/{params.outname}/fna-downloads"
+        mkdir -p $fna_dir
+        
+        N=8
+        
+        while read line; do
+
+            # Download the directory listing using curl and filter it for *.fna files
+            filenames=$(curl -s $line/ | grep -oP '(?<=href=")[^"]*genomic\.fna')
+            
+            # Loop over each filename in the filtered directory listing
+            for filename in $filenames ; do 
+                (
+                # Download the file using curl
+                curl -o $fna_dir/$filename".gz" $line/$filename".gz"
+                #sleep $(( (RANDOM % 3) + 1))
+                
+                ) &
+            
+                if [[ $(jobs -r -p | wc -l) -ge $N ]]; then
+                    # now there are $N jobs already running, so wait here for any job
+                    # to be finished so there is a place to start next one.
+                    wait -n
+                fi
+                
+            done
+            
+        done < {input.ftp_paths}
+        
+        wait 
+        
+        mkdir -p results/{params.outname}/summaries/
+        ls $fna_dir > {output.abyss_summary}
+        """
+
+rule abyss_fac:
+    input:
+        master = "results/{outname}/master.csv",
+        fna_files = "results/{outname}/summaries/fna_sum.txt"
+    output:
+        abyss_out = "results/{outname}/abyss_fac_output.txt"
+    params: 
+        outname={outname}
+    singularity:
+        "containers/abyss.sif"
+    shell:
+        '''
+        
+        echo 
+        echo "--------------------------------------"
+        echo "| 4/7 Starting abyss-fac analysis... |"
+        echo "--------------------------------------"
+        echo
+        
+        touch {output.abyss_out}
+        cd "results/{params.outname}/fna-downloads"
+        ls
+        find . -name '*gz' | xargs -n 1000 bash -c 'abyss-fac -t1 "$@" ' > "../../../{output.abyss_out}"
+        '''
+
+rule add_abyss_to_master:
+    input:
+        master = "results/{outname}/master.csv",
+        abyss_out = "results/{outname}/abyss_fac_output.txt",
+        script = "workflow/scripts/join_abyss_fac_results.py"
+    output:
+        master_abyss = "results/{outname}/master_abyss.csv"
+    singularity:
+        "containers/first-environment.sif"
+    shell:
+        '''
+        python3 {input.script} --master {input.master} --abyss_out {input.abyss_out} --result {output.master_abyss}
+        
+        echo 
+        echo "-----------------------------------------------------"
+        echo "| 5/7 Added the abyss fac results to master file... |"
+        echo "-----------------------------------------------------"
+        echo
+        
+        '''
+        
+rule download_and_convert_gbff:
+    input:
+        script = "workflow/scripts/bp_genbank2gff3.pl",
+        ftp_paths = "results/{outname}/master_ftp_paths.txt",
+        master_abyss = "results/{outname}/master_abyss.csv"
+    output:
+        #gbff_dir = directory("results/gbff-downloads"),
+        #processed_dir = directory("results/processed_files"),
+        gbff_summary = ("results/{outname}/summaries/download_gbff.txt"),
+        proc_summary = ("results/{outname}/summaries/convert.txt")
+    conda:
+        "envs/perl-env.yml" #need to check up on
+    params: 
+        outname={outname}
+    threads: 
+        8
+    singularity:
+        "containers/bioperl.sif"
+    shell:
+        """
+        
+        echo
+        echo "----------------------------------------------------"
+        echo "| 6/7 Starting GFF download and GBFF conversion... |"
+        echo "---------------------------------------------------"
+        echo
+        
+        # Input file containing FTP paths, one per line
+        # Loop over each line in the input file
+        gbff_dir="results/{params.outname}/gbff-downloads"
+        processed_dir="results/{params.outname}/processed_files"
         mkdir -p $gbff_dir
         mkdir -p $processed_dir
         
+        N=8
         
-        while read line
-        do
+        while read line; do
             # Download the directory listing using curl and filter it for *.gbff files
             filenames=$(curl -s $line/ | grep -oP '(?<=href=")[^"]*genomic\.gbff')
             #filenames=$(curl -s $line/ | pcregrep -o '(?<=href=")[^"]*genomic\.gbff')
         
             # Loop over each filename in the filtered directory listing
-            for filename in $filenames
-            do
+            for filename in $filenames ; do
+                (
                 # Download the file using curl
                 curl -o $gbff_dir/$filename".gz" $line/$filename".gz"
                 # Convert gbff file to gff
                 perl {input.script} $gbff_dir/"$filename".gz --outdir  $processed_dir --quiet
+                ) &
+        
+                if [[ $(jobs -r -p | wc -l) -ge $N ]]; then
+                    # now there are $N jobs already running, so wait here for any job
+                    # to be finished so there is a place to start next one.
+                    wait -n
+                fi
+            
             done
         
         done < {input.ftp_paths}
         
-        mkdir -p summaries/
+        wait
+        
         ls $gbff_dir > {output.gbff_summary}
         ls $processed_dir > {output.proc_summary}
         """
-
-'''
+        
 rule run_roary:
     input:
-        proc_summary = ("summaries/convert.txt")
+        proc_summary = ("results/{outname}/summaries/convert.txt")
     output:
-        #outdir = directory("results/roary/testing"),
-        #err = "results/roary/testing/err.txt",
-        out = "results/roary/testing/out.txt"
+        err = "results/{outname}/roary/err.txt",
+        out = "results/{outname}/roary/out.txt"
     conda:
         "envs/roary-env.yml"
+    params: 
+        outname={outname}
     threads: 
         8
+    singularity:
+        "containers/roary_trusty.sif"
     shell:
         """
-        echo "Starting roary..."
-        outdir='results/roary/testing'
+        
+        echo 
+        echo "-------------------------"
+        echo "| 7/7 Starting roary... |"
+        echo "-------------------------"
+        echo
+        
+        outdir='results/{outname}/roary'
         mkdir -p $outdir
-        echo "Made dir.."
 
         #-r = create R plots --> need to load R and ggplot2??
         #-p = number of threads
@@ -150,78 +324,7 @@ rule run_roary:
         #-i = minimum percentage identity for blastp
         #-cd = percentage of isolates a gene must be in to be core
         # -f = output directory
-        
-        roary -r -p 30 -e --mafft -i 80 -cd 80 -f $outdir results/processed_files/* > $outdir/out.txt 2> $outdir/err.txt
+        roary -r -p 30 -e --mafft -i 80 -cd 80 -f $outdir results/{params.outname}/processed_files/* > {output.out} 2> {output.err}
+        echo "Finished roary..."
         """    
-'''      
-        
-'''
-#get intermediate step that chooses what to download
-rule download_gbff:
-    input:
-        script = "workflow/scripts/job1_download_gbff.py",
-        master = "results/master.csv" 
-    output:
-        dir = directory("results/gbff-downloads/"),
-        summary = ("summaries/download_gbff.txt")
-    conda:
-        "envs/environment.yml"
-    threads: 
-        8
-    shell:
-        """
-        echo "Starting download..."
-        mkdir {output.dir}
-        python {input.script} \
-            --downloadsuffix genomic.gbff.gz \
-            --masterfile {input.master} \
-            --outdir {output.dir} \
-            --databank Genbank \
-            --filtercolumn interest_assembly_accession
-            
-        ls {output.dir} > {output.summary}  
-        """   
-
-
-
-rule convert_gbff_to_gff:
-    input:
-        #dir = directory(),
-        script = "workflow/scripts/bp_genbank2gff3.pl",
-        summary = ("summaries/download_gbff.txt")
-    output:
-        dir = directory("data/processed-files"),
-        summary = ("summaries/convert_gbff.txt")
-    conda:
-        "envs/roary-env.yml"
-    shell:
-        """
-        echo "Starting conversion..."
-        mkdir results/processed-files
-        perl {input.script} -s --quiet --dir "results/gbff-downloads/" --outdir {output.dir}
-        
-        ls {output.dir} > {output.summary} 
-        """   
-
-
  
-rule download_for_abyss_fac
-rule abyss_fac:
-    input:
-        master = "master.csv"
-    output:
-        #todo
-    conda:
-    shell:
-        
-        mkdir -p /anvil/projects/x-mcb200143/pg_project/daily/1113/strains_asm_stats
-        cd /anvil/projects/x-mcb200143/pg_project/data/ftp_downloads
-
-        module load biocontainers/default
-        module load abyss/2.3.4
-
-        export -f abyss-fac
-        
-'''
-
-        
