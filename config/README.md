@@ -19,6 +19,7 @@ The workflow can be run interactively by :
 ```
 #To run on a list of accession IDs: 
 snakemake --use-singularity --config outname=testingacc accortaxon=accession filename=workflow/testing-files/accsofinterest.txt
+
 #To run on a list of taxon IDs: 
 snakemake --use-singularity --config outname=testingtax accortaxon=taxonomy filename=workflow/testing-files/taxons.txt
 ```
@@ -27,6 +28,7 @@ The workflow can be run on a job manager by adjusting the commands in config/con
 ```
 #To run on a list of accession IDs:
 snakemake --profile config/ --config outname=testingacc accortaxon=accession filename=workflow/testing-files/accsofinterest.txt
+
 #To run on a list of taxon IDs:
 snakemake --profile config/ --config outname=testingtax accortaxon=taxonomy filename=workflow/testing-files/taxons.txt
 ```
