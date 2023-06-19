@@ -21,7 +21,7 @@ The workflow is given three arguments:
 The workflow can be run interactively by : 
 ```
 #To run on a list of accession IDs: 
-snakemake --use-singularity --config outname=testingacc accortaxon=accession filename=workflow/testing-files/accsofinterest.txt
+snakemake --use-singularity --config outname=testingacc accortaxon=accession filename=workflow/testing-files/accessions.txt
 
 #To run on a list of taxon IDs: 
 snakemake --use-singularity --config outname=testingtax accortaxon=taxonomy filename=workflow/testing-files/taxons.txt
