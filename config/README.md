@@ -11,9 +11,9 @@ conda install -c conda-forge parallel
 
 The workflow is given three arguments: 
 
-'outname' : output files will be put in the directory 'directory/[outname]'
-'accortaxon' : specifies whether the given filename contains a list of accession numbers or taxon IDs. 'options: accession or taxonomy'
-'filename' : a new line delimited file of accession numbers or NCBI taxonomy IDs 
+`outname` : output files will be put in the directory `directory/[outname]`
+`accortaxon` : specifies whether the given filename contains a list of accession numbers or taxon IDs. `options: accession or taxonomy`
+`filename` : a new line delimited file of accession numbers or NCBI taxonomy IDs 
 
 The workflow can be run interactively by : 
 ```
