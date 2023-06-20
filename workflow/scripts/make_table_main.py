@@ -27,6 +27,10 @@ def parse_arguments():
     parser.add_argument('--outfilename', default="master_file", type=str)
     #parser.add_argument('--parse_biosample', action='store_true')
     parser.add_argument('--accortaxon', choices=['accession', 'taxonomy'], required=True, type=str) #eventually change to filename
+    parser.add_argument('--gen', help="Master file output directory", required=True, type=str)
+    parser.add_argument('--ref', help="Master file output directory", required=True, type=str)
+    parser.add_argument('--names', help="Master file output directory", required=True, type=str)
+    parser.add_argument('--nodes', help="Master file output directory", required=True, type=str)
     # parser.add_argument('--')
     args = parser.parse_args()
     return args
@@ -46,10 +50,15 @@ def main():
             taxon_ids = file.readlines()
         taxon_ids = [line.strip() for line in taxon_ids]
         
-        species_ids = parse_taxon.get_species_ids(taxon_ids)
+        species_ids = parse_taxon.get_species_ids(taxon_ids, args.names, args.nodes)
+        
+        with open(f"{args.outdir}/species.csv","wt") as file:
+            for thestring in species_ids:
+                print(thestring, file=file)
+                
         #print(species_ids)
-        in_genbank = make_genbank_refseq_file.genbank_table(species_ids, 'taxid') 
-        in_refseq = make_genbank_refseq_file.refseq_table(species_ids, 'taxid') 
+        in_genbank = make_genbank_refseq_file.genbank_table(species_ids, 'taxid', args.gen) 
+        in_refseq = make_genbank_refseq_file.refseq_table(species_ids, 'taxid', args.ref) 
         
         if in_genbank.empty and in_refseq.empty : raise Exception('No accessions found!')
         
@@ -64,8 +73,8 @@ def main():
         with open(args.filename, 'r') as file:
             accession_ids = file.readlines()
         accession_ids = [line.strip() for line in accession_ids]
-        in_genbank = make_genbank_refseq_file.genbank_table(accession_ids, 'assembly_accession')
-        in_refseq = make_genbank_refseq_file.refseq_table(accession_ids, 'assembly_accession')
+        in_genbank = make_genbank_refseq_file.genbank_table(accession_ids, 'assembly_accession', args.gen)
+        in_refseq = make_genbank_refseq_file.refseq_table(accession_ids, 'assembly_accession', args.ref)
         
         if in_genbank.empty and in_refseq.empty : raise Exception('No accessions found!')
         
@@ -81,9 +90,14 @@ def main():
         print(f"\nSearching for taxon: {args.filename}")
         print(f"Taxons {args.filename} are of interest\n")
         #rank_name = 'genus'  # Example rank name to search for
-        species_ids = parse_taxon.get_species_ids(taxon_ids)
-        in_genbank = make_genbank_refseq_file.genbank_table(species_ids, 'taxid') 
-        in_refseq = make_genbank_refseq_file.refseq_table(species_ids, 'taxid') 
+        species_ids = parse_taxon.get_species_ids(taxon_ids, args.names, args.nodes)
+        
+        with open(f"{args.outdir}/species.csv","wt") as file:
+            for thestring in species_ids:
+                print(thestring, file=file)
+            
+        in_genbank = make_genbank_refseq_file.genbank_table(species_ids, 'taxid', args.gen) 
+        in_refseq = make_genbank_refseq_file.refseq_table(species_ids, 'taxid', args.ref) 
         
         if in_genbank.empty and in_refseq.empty : raise Exception('No accessions found!')
         
@@ -95,7 +109,15 @@ def main():
     save = True
     if save:
         joined.to_csv(f"{args.outdir}/{args.outfilename}.csv")
+        
+        #GCA_018603945.1 GCA_018603945.1 ASM1860394v1    28037   Streptococcus mitis     strain=14-4881  latest  Contig  https://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/018/603/945/GCA_018603945.1_ASM1860394v1
+        only_of_interest = joined[joined.interest_assembly_accession.notna()]
+        only_of_interest.to_csv(f"{args.outdir}/of_interest.csv")
+        only_of_interest_filtered = only_of_interest[['interest_assembly_accession', 'interest_assembly_accession', 'biosample', 'taxid', 'organism_name', 'biosample', 'interest_assembly_accession_vers', 'genbank_ftp_path']]
+        only_of_interest_filtered.to_csv(f"{args.outdir}/for_download.tsv", sep='\t', header=False, index=False)
         return(f"{args.outdir}/{args.outfilename}.csv")
+        
+        
     
 if __name__ == "__main__":
     main()

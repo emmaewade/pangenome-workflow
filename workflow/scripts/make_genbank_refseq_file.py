@@ -4,13 +4,13 @@ import argparse
 import sys
 import time
 
-def genbank_table(ids, searchcol):
+def genbank_table(ids, searchcol, report_file):
     ################### 1 parse out all the Streptococcus genomes in NCBI #############################################
     ##### 1.a try the assembly reports to get the samples #############################################################
     # Use the genbank list
     #https://ftp.ncbi.nlm.nih.gov/genomes/ASSEMBLY_REPORTS/assembly_summary_genbank.txt
     #"C:\pg_project\data\assembly_summary_genbank.txt"
-    report_file = "data/preset/assembly_summary_genbank.txt"
+    #report_file = "data/assembly_summary_genbank.txt"
     chunksize = 1000000 #chunksize = args.chunksize
     nrows = None #nrows = args.nrows
     #species = "Streptococcus " #species = args.species 
@@ -42,11 +42,11 @@ def genbank_table(ids, searchcol):
             
     return in_genbank
     
-def refseq_table(ids, searchcol): 
+def refseq_table(ids, searchcol, report_file): 
     ##### 1.b Verify all the samples in the Streptococcus refseq are also found in the genbank ########################
     #https://ftp.ncbi.nlm.nih.gov/genomes/ASSEMBLY_REPORTS/assembly_summary_refseq.txt
     #Parse 'Streptococcus ' at begining of species name, A space is used to make sure we get the right genus as other genuse exist ..... 
-    report_file = "data/preset/assembly_summary_refseq.txt" #<-- turn into argument
+    #report_file = "data/preset/assembly_summary_refseq.txt" #<-- turn into argument
     chunksize = 1000000 #chunksize = args.chunksize
     nrows = None #nrows = args.nrows
     species = "Streptococcus " #species = args.species

@@ -128,10 +128,11 @@ def get_species(parentnumber, noderanks, nodeparents):
             if parentnumber in finalnode:
                 species.append(node)
     #if noderanks[parentnumber] == "species" or noderanks[parentnumber] == "subspecies": species.append(parentnumber)
+    species.append(parentnumber)
     return species
 
 ###############Taxonomy######################
-def get_species_ids(taxnames):
+def get_species_ids(taxnames, namesfile, nodesfile):
     '''
     namesfile = "data/preset/names.dmp"
     nodesfile = ["data/preset/nodes.dmp"]
@@ -142,8 +143,8 @@ def get_species_ids(taxnames):
     return species_ids
     '''
     species_ids = []
-    namesfile = "data/preset/names.dmp"
-    nodesfile = ["data/preset/nodes.dmp"]
+    namesfile=namesfile
+    nodesfile = [nodesfile]
     name_to_node, node_to_name = names_to_nodes(namesfile)
     node_to_rank, node_to_parent = nodes_to_parents(nodesfile)
     
