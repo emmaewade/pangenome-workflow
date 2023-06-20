@@ -76,7 +76,7 @@ rule make_table:
 	    
         echo
         echo "------------------------------"
-        echo "| 1/7 Starting make table... |"
+        echo "| 1/6 Starting make table... |"
         echo "------------------------------"
         echo 
         
@@ -92,6 +92,100 @@ rule make_table:
         """
         
 
+rule download_gbff:
+    input:
+        master_interest = "results/{outname}/for_download.tsv"
+    output:
+        gbff_download = ("results/{outname}/summaries/gbff_sum.txt")
+    params: 
+        outname={outname}
+    threads: 
+        8
+    shell:
+        """
+        
+        echo 
+        echo "---------------------------------"
+        echo "| 2/6 Starting GBFF download... |"
+        echo "---------------------------------"
+        echo
+        
+        
+        gbff_dir="results/{params.outname}/gbff-downloads"
+        mkdir -p $gbff_dir
+        
+        bash workflow/scripts/bit-dl-ncbi-assemblies -f genbank -j {threads} -m {input.master_interest} -d $gbff_dir
+        
+        mkdir -p results/{params.outname}/summaries/
+        ls $gbff_dir > {output.gbff_download}
+        
+        mv $gbff_dir/NCBI-accessions-not-downloaded.txt results/{params.outname}/NCBI-gbff-accessions-not-downloaded.txt
+        
+        #deleting uncompleted files due to server issues, gunzip -t tests file integrity
+        echo "Moving incomplete files....\n"
+        #find $gbff_dir -type f -exec sh -c 'if ! gunzip -t "{{}}" >/dev/null 2>&1; then echo "Deleting: {{}}"; rm -f "{{}}"; fi' \;
+        #find $gbff_dir -type f -exec sh -c 'if ! gunzip -t "{{}}" >/dev/null 2>&1; then echo "{{}}" >> results/{params.outname}/incomplete_files.txt; echo "Deleting: {{}}"; rm -f "{{}}"; fi' \;
+        mkdir -p results/{params.outname}/incomplete_files
+        find $gbff_dir -type f -exec sh -c 'if ! gunzip -t "{{}}" >/dev/null 2>&1; then echo "{{}}" >> results/{params.outname}/incomplete_files.txt; echo "Moving: {{}}"; mv "{{}}" results/{params.outname}/incomplete_files; fi' \;
+        """   
+        
+rule convert_gbff_and_fa:
+    input:
+        gb_to_gff3_script = "workflow/scripts/bp_genbank2gff3.pl",
+        gb_to_fa_script = "workflow/scripts/convert_gb_to_fa.pl",
+        gbff_summary = "results/{outname}/summaries/gbff_sum.txt"
+    output:
+        proc_summary = ("results/{outname}/summaries/convert.txt")
+    params: 
+        outname={outname}
+    threads: 
+        10
+    singularity:
+        #"workflow/containers/bioperl.sif"
+        "docker://bioperl/bioperl:latest"
+    shell:
+        """
+        
+        echo
+        echo "-----------------------------------"
+        echo "| 3/6 Starting GBFF conversion... |"
+        echo "-----------------------------------"
+        echo
+        
+        # Input file containing FTP paths, one per line
+        # Loop over each line in the input file
+        gbff_dir="results/{params.outname}/gbff-downloads"
+        processed_dir="results/{params.outname}/processed_files"
+        mkdir -p $processed_dir
+
+        filenames=$(find $gbff_dir -name *.gz -type f)
+        
+        N={threads}
+        
+        # Loop over each filename in the filtered directory listing
+        for filename in $filenames
+        do
+        (
+            perl {input.gb_to_gff3_script} $filename --outdir $processed_dir --quiet 
+            perl {input.gb_to_fa_script} $filename $processed_dir
+            sleep $(( (RANDOM % 3) + 1))
+        
+        ) &
+    
+            if [[ $(jobs -r -p | wc -l) -ge $N ]]; then
+                # now there are $N jobs already running, so wait here for any job
+                # to be finished so there is a place to start next one.
+                wait -n
+            fi
+        
+        done
+        
+        wait 
+        
+        ls $processed_dir > {output.proc_summary}
+        """
+        
+'''
 rule download_fna:
     input:
         master_file = 'results/{outname}/for_download.tsv'
@@ -106,7 +200,7 @@ rule download_fna:
         
         echo 
         echo "-----------------------------------"
-        echo "| 2/7 Starting FASTA download... |"
+        echo "| 3/6 Starting FASTA download... |"
         echo "-----------------------------------"
         echo
         
@@ -122,16 +216,17 @@ rule download_fna:
         mv $fna_dir/NCBI-accessions-not-downloaded.txt results/{params.outname}/NCBI-fna-accessions-not-downloaded.txt
         
         #Deleting uncompleted files due to server issues, gunzip -t tests file integrity
-        echo "Deleting incomplete files....\n"
+        echo "Moving incomplete files....\n"
         #find $fna_dir -type f -exec sh -c 'if ! gunzip -t "{{}}" >/dev/null 2>&1; then echo "Deleting: {{}}"; rm -f "{{}}"; fi' \;
-        find $fna_dir -type f -exec sh -c 'if ! gunzip -t "{{}}" >/dev/null 2>&1; then echo "{{}}" >> results/{params.outname}/incomplete_files.txt; echo "Deleting: {{}}"; rm -f "{{}}"; fi' \;
+        mkdir -p results/{params.outname}/incomplete_files
+        find $fna_dir -type f -exec sh -c 'if ! gunzip -t "{{}}" >/dev/null 2>&1; then echo "{{}}" >> results/{params.outname}/incomplete_files.txt; echo "Moving: {{}}"; mv "{{}}" results/{params.outname}/incomplete_files ; fi' \;
         """   
-
+'''
 
 rule abyss_fac:
     input:
         master = "results/{outname}/master.csv",
-        fna_files = "results/{outname}/summaries/fna_sum.txt"
+        fna_summary = ("results/{outname}/summaries/convert.txt")
     output:
         abyss_out = "results/{outname}/abyss_fac_output.txt"
     params: 
@@ -144,13 +239,13 @@ rule abyss_fac:
         
         echo 
         echo "--------------------------------------"
-        echo "| 3/7 Starting abyss-fac analysis... |"
+        echo "| 4/6 Starting abyss-fac analysis... |"
         echo "--------------------------------------"
         echo
         
         touch {output.abyss_out}
-        cd "results/{params.outname}/fna-downloads"
-        find . -name '*gz' | xargs -n 1000 bash -c 'abyss-fac -t1 "$@" ' > "../../../{output.abyss_out}"
+        cd "results/{params.outname}/processed_files"
+        find . -name '*.fa' | xargs -n 1000 bash -c 'abyss-fac -t1 "$@" ' > "../../../{output.abyss_out}"
         '''
 
 rule add_abyss_to_master:
@@ -169,87 +264,16 @@ rule add_abyss_to_master:
         
         echo 
         echo "-----------------------------------------------------"
-        echo "| 4/7 Added the abyss fac results to master file... |"
+        echo "| 5/6 Added the abyss fac results to master file... |"
         echo "-----------------------------------------------------"
         echo
         
         '''
 
-rule download_gbff:
-    input:
-        master_abyss = "results/{outname}/master_abyss.csv",
-        master_interest = "results/{outname}/for_download.tsv"
-    output:
-        gbff_download = ("results/{outname}/summaries/gbff_sum.txt")
-    params: 
-        outname={outname}
-    threads: 
-        8
-    shell:
-        """
-        
-        echo 
-        echo "---------------------------------"
-        echo "| 5/7 Starting GBFF download... |"
-        echo "---------------------------------"
-        echo
-        
-        
-        gbff_dir="results/{params.outname}/gbff-downloads"
-        mkdir -p $gbff_dir
-        
-        bash workflow/scripts/bit-dl-ncbi-assemblies -f genbank -j {threads} -m {input.master_interest} -d $gbff_dir
-        
-        mkdir -p results/{params.outname}/summaries/
-        ls $gbff_dir > {output.gbff_download}
-        
-        mv $gbff_dir/NCBI-accessions-not-downloaded.txt results/{params.outname}/NCBI-gbff-accessions-not-downloaded.txt
-        
-        #deleting uncompleted files due to server issues, gunzip -t tests file integrity
-        echo "Deleting incomplete files....\n"
-        #find $gbff_dir -type f -exec sh -c 'if ! gunzip -t "{{}}" >/dev/null 2>&1; then echo "Deleting: {{}}"; rm -f "{{}}"; fi' \;
-        find $gbff_dir -type f -exec sh -c 'if ! gunzip -t "{{}}" >/dev/null 2>&1; then echo "{{}}" >> results/{params.outname}/incomplete_files.txt; echo "Deleting: {{}}"; rm -f "{{}}"; fi' \;
-
-        """   
-        
-rule convert_gbff:
-    input:
-        script = "workflow/scripts/bp_genbank2gff3.pl",
-        gbff_summary = "results/{outname}/summaries/gbff_sum.txt"
-    output:
-        proc_summary = ("results/{outname}/summaries/convert.txt")
-    conda:
-        "envs/perl-env.yml" #need to check up on
-    params: 
-        outname={outname}
-    threads: 
-        20
-    singularity:
-        #"workflow/containers/bioperl.sif"
-        "docker://bioperl/bioperl:latest"
-    shell:
-        """
-        
-        echo
-        echo "-----------------------------------"
-        echo "| 6/7 Starting GBFF conversion... |"
-        echo "-----------------------------------"
-        echo
-        
-        # Input file containing FTP paths, one per line
-        # Loop over each line in the input file
-        gbff_dir="results/{params.outname}/gbff-downloads"
-        processed_dir="results/{params.outname}/processed_files"
-        mkdir -p $processed_dir
-        
-        find $gbff_dir -name *.gz -type f | xargs -n 100 perl -X {input.script} $gbff_dir/* --outdir  $processed_dir --quiet
-
-        ls $processed_dir > {output.proc_summary}
-        """
-
 rule run_roary:
     input:
-        proc_summary = ("results/{outname}/summaries/convert.txt")
+        proc_summary = ("results/{outname}/summaries/convert.txt"),
+        master_abyss = "results/{outname}/master_abyss.csv"
     output:
         err = "results/{outname}/roary/err.txt",
         out = "results/{outname}/roary/out.txt"
@@ -265,7 +289,7 @@ rule run_roary:
         
         echo 
         echo "-------------------------"
-        echo "| 7/7 Starting roary... |"
+        echo "| 6/6 Starting roary... |"
         echo "-------------------------"
         echo
         
