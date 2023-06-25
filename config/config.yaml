@@ -5,12 +5,29 @@ reason: True
 show-failed-logs: True
 keep-going: True
 printshellcmds: True
-# Variables ####
+
+##################
+### Arguments ####
+##################
+## more information about assembly level and version here: https://www.ncbi.nlm.nih.gov/assembly/help/#:~:text=Genome%20representation%20-%20whether%20the%20goal%20for%20the,There%20may%20still%20be%20gaps%20in%20the%20assembly.
+# -r = create R plots 
+# -p = number of threads
+# -e --mafft a multiFASTA alignment of core genes using MAFFT
+# -i = minimum percentage identity for blastp
+# -cd = percentage of isolates a gene must be in to be core
+# -f = output directory
 config: 
     - accortaxon='taxonomy' #options : accession or taxonomy
-    - filename='testing-files/taxons.txt' # Streptococcus dysgalactiae subsp. dysgalactiae and Streptococcus agalactiae , file of accessions or file of taxons
-    - outname='just_small_list'
-# Cluster submission
+    - filename='testing-files/actinobaculum.txt' # Streptococcus dysgalactiae subsp. dysgalactiae and Streptococcus agalactiae , file of accessions or file of taxons
+    - outname=act_shaali_59505 #results will write into results/outname
+    - roary_command='-r -p 30 -e --mafft -i 80 -cd 80 -f' #roary will run "roary {roary_command} $outdir .... "
+    - only_download_complete_genomes='t' ##filter to only those whose assembly level = complete genomes, only options are t or f, case sensitive!! 
+    - only_download_latest='t' #filter t only those whose version = latest, only options are t or f, case sensitive!!
+##################    
+
+##########################
+### Cluster Submission ###
+##########################
 jobname: "{rule}.{jobid}"              # Provide a custom name for the jobscript that is submitted to the cluster.
 max-jobs-per-second: 1                 #Maximal number of cluster/drmaa jobs per second, default is 10, fractions allowed.
 max-status-checks-per-second: 10       #Maximal number of job status checks per second, default is 10
@@ -18,10 +35,25 @@ jobs: 400                              #Use at most N CPU cluster/cloud jobs in 
 cluster: "mkdir -p logs/ | sbatch $(config/parseJobID.sh {dependencies}) -q cpu -p shared --output=\"logs/slurm_%x_%j.out\" --error=\"logs/slurm_%x_%j.log\" --mem={resources.mem_mb} --time={resources.runtime} --parsable "
 cluster-status: "config/status-sacct.sh" #  Use to handle timeout exception, do not forget to chmod +x
 immediate-submit: True
+rerun-incomplete: True
 notemp: True
-# singularity
+cluster-cancel: "scancel"
+
+###################
+### Singularity ###
+###################
 use-singularity: True
-# Job resources
+
+#####################
+### Job and Rule Resources ###
+#####################
+# Define the number of threads used by rules
+#set-threads:
+#  - make_table=1
+#  - get_interest_ftp=1
+#  - download_and_convert_gbff=1
+#  - run_roary=1
+  
 #set-resources: #adjust to make specific to rules !! make_table, get_interest_ftp, download_and_convert_gbff, run_roary
 #  - make_table:mem_mb=10000
 #  - make_table:runtime=00:12:00
@@ -35,16 +67,13 @@ use-singularity: True
 # For some reasons time needs quotes to be read by snakemake
 default-resources:
   - mem_mb=10000 #10000 MB = 10 GB
-  - runtime=1440 #720 seconds  = 12 hours
+  - disk_mb=10000
+  - runtime=1440 #720 seconds  = 12 hours, 1440 seconds = 24 hours
   - tasks=1
-  - cpus_per_task=2
-  - nodes=1
-# Define the number of threads used by rules
-#set-threads:
-  #- make_table=1
-  #- get_interest_ftp=1
-  #- download_and_convert_gbff=1
-  #- run_roary=1
-#config["singularity"] = '~/.conda/envs/2021.05-py38/snakemake/bin/singularity'
+  - cpus_per_task=1
+  - nodes=8
+  
+
+
 
 
