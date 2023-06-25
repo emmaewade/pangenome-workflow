@@ -2,7 +2,7 @@
 [![Snakemake](https://img.shields.io/badge/snakemake-≥7.25.0-brightgreen.svg)](https://snakemake.github.io)
 
 ## Environment Setup
-Snakemake is best installed via the [Mamba package manager] (https://github.com/mamba-org/mamba) (a drop-in replacement for conda). If you have neither Conda nor Mamba, it can be installed via [Mambaforge] (https://github.com/conda-forge/miniforge#mambaforge). For other options see [here] (https://github.com/mamba-org/mamba).
+Snakemake is best installed via the [Mamba package manager](https://github.com/mamba-org/mamba) (a drop-in replacement for conda). If you have neither Conda nor Mamba, it can be installed via [Mambaforge](https://github.com/conda-forge/miniforge#mambaforge). For other options see [here](https://github.com/mamba-org/mamba).
 
 Given that Mamba is installed, run the following command to make a conda environment including snakemake, singularity, and (if available) GNU parallel. 
 
@@ -46,7 +46,7 @@ Arguments can be adjusted in the configuration file **config/config.yaml** under
 ```
 snakemake --profile config/  
 ```
-or through arguments can be adjust through the command line like so: 
+or arguments can be set through the command line like so: 
 
 ```
 snakemake --profile config/  \
@@ -63,3 +63,20 @@ To submit jobs through a cluster environment, uncomment and adjust the *cluster:
 
 A few example commands are available in *workflow/testing-taxon-ids.sh*.
 
+### Output
+A number of files and directories will be created in the output directory results/*outname*.
+
+- *abyss_fac_output.txt* : output of abyss-fac analysis on FASTA files
+- *gbff-downloads* : folder of downloaded gbff files
+- *master_abyss.csv* : file joining master.tsv and abyss_fac_output.txt, useful for downstream analysis
+- *NCBI-gbff-accessions-not-downloaded.txt* : file of gbff accessions not downloaded, could be processing issues or if gbff file doesn't exist
+- *roary* : folder of roary log files
+- *species.csv* : file containing taxonomy ids (not necessarily species) that will be parsed for
+- *for_download.txt* : file of ftp paths 
+- *incomplete_files* : folder of gbff files that were not completely downloaded, common when downloading a large number of files
+- *master.tsv* : file of useful assembly information
+- *processed_files* : folder of processed GFF3 and FASTA files
+- *roary_%number%* : roary output directory
+- *summaries* : folder of files used mainly to connect parts of workflow
+
+Additionally *assembly_summary_genbank.txt* , *assembly_summary_refseq.txt*,  *names.dmp*, and  *nodes.dmp* will be downloaded into *workflow/data* after the first run. These are heavy files and can be deleted in between or after running. 
