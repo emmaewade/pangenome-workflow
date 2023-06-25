@@ -25,7 +25,7 @@ git clone https://github.com/emmaewade/pangenome-workflow .
 
 Two folders, *workflow* and *config*, will be downloaded to your current directory. *Workflow* contains the Snakefile aka a file of rules or the "control center" of the workflow, a folder of needed scripts, and a folder of input files for practice. *Config* contains files for cluster control and *config.yaml*. *Config.yaml* will be editted later to configure the workflow.
 
-### Configuration
+## Configuration
 
 The workflow is given six arguments: 
 
@@ -63,8 +63,8 @@ To submit jobs through a cluster environment, uncomment and adjust the *cluster:
 
 A few example commands are available in *workflow/testing-taxon-ids.sh*.
 
-### Output
-A number of files and directories will be created in the output directory results/*outname*.
+## Output
+After the workflow parses taxonomies (if necessary), download GBFF files, processes GFF and FASTA files, and runs ABySS and Roary, a number of files and directories will be created in the output directory results/*outname*.
 
 - *abyss_fac_output.txt* : output of abyss-fac analysis on FASTA files
 - *gbff-downloads* : folder of downloaded gbff files
@@ -80,3 +80,11 @@ A number of files and directories will be created in the output directory result
 - *summaries* : folder of files used mainly to connect parts of workflow
 
 Additionally *assembly_summary_genbank.txt* , *assembly_summary_refseq.txt*,  *names.dmp*, and  *nodes.dmp* will be downloaded into *workflow/data* after the first run. These are heavy files and can be deleted in between or after running. 
+
+## Citations
+1. ABySS:
+2. Bit Package:
+3. Roary: 
+
+## Please cite XXX at DOI: 
+
