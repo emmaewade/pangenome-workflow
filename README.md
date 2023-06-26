@@ -62,7 +62,11 @@ snakemake --profile config/  \
         roary_command='-r -p 30 -e --mafft -i 80 -cd 80 -f'
 ```
 
-To submit jobs through a cluster environment, uncomment and adjust the *cluster:* lines in **config/config.yaml** appropriate to your cluster. Run the workflow with the same commands as above. This time they will be submitted to your job manager. 
+To submit jobs through a cluster environment, uncomment and adjust the *cluster:* lines in **config/config.yaml** appropriate to your cluster. Then (edit, if necessary) make the config/parseJobID.sh config/status-saact.sh files executable: 
+```
+chmod +X config/parseJobID.sh config/status-sacct.sh 
+```
+Run the workflow with the same commands as above. This time they will be submitted to your job manager. 
 
 A few example commands are available in *workflow/testing-taxon-ids.sh*.
 
