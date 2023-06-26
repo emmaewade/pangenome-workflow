@@ -46,9 +46,11 @@ The workflow is given six arguments:
 
 **roary_command** : command fed to roary. example: *'-r -p 30 -e --mafft -i 80 -cd 80 -f'*
 
-Arguments and wanted cores can be adjusted in the configuration file **config/config.yaml** under *config:* and the workflow ran by 
+Arguments, wanted cores, and job resources can be adjusted in the configuration file **config/config.yaml** . 
 
 ## Running
+After configuration, the workflow can be run by 
+
 ```
 snakemake --profile config/  
 ```
@@ -66,7 +68,7 @@ snakemake --profile config/  \
         roary_command='-r -p 30 -e --mafft -i 80 -cd 80 -f'
 ```
 
-To submit jobs to a job manager like SLURM, uncomment and adjust the *cluster:* lines in **config/config.yaml** appropriate to your cluster. Then edit (if necessary) and make the config/parseJobID.sh config/status-saact.sh files executable: 
+To submit jobs to a job manager like SLURM, uncomment and adjust the SLURM job submission lines in **config/config.yaml** appropriate to your cluster. Then edit (if necessary) and make the config/parseJobID.sh config/status-saact.sh files executable: 
 ```
 chmod +x config/parseJobID.sh config/status-sacct.sh 
 ```
@@ -75,7 +77,7 @@ Run the workflow with the same commands as above. This time they will be submitt
 A few example commands are available in *workflow/testing-commands.sh* for practice.
 
 ## Output
-After the workflow parses taxonomies (if necessary), download GBFF files, processes GFF and FASTA files, and runs ABySS and Roary, a number of files and directories will be created in the output directory results/*outname*.
+After the workflow parses taxonomies (if necessary), downloads GBFF files, processes GFF and FASTA files, and runs ABySS and Roary, a number of files and directories will be created in the output directory results/*outname*.
 
 - *abyss_fac_output.txt* : output of abyss-fac analysis on FASTA files
 - *gbff-downloads* : folder of downloaded gbff files
@@ -88,7 +90,7 @@ After the workflow parses taxonomies (if necessary), download GBFF files, proces
 - *master.tsv* : file of useful assembly information
 - *processed_files* : folder of processed GFF3 and FASTA files
 - *roary_%number%* : roary output directory
-- *summaries* : folder of files used mainly to connect parts of workflow
+- *summaries* : folder of files used mainly to connect workflow rules
 
 Additionally *assembly_summary_genbank.txt* , *assembly_summary_refseq.txt*,  *names.dmp*, and  *nodes.dmp* will be downloaded into *workflow/data* after the first run. These are heavy files and can be deleted in between or after running. 
 
