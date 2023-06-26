@@ -7,6 +7,9 @@ keep-going: True
 printshellcmds: True
 rerun-incomplete: True
 
+###Adjust this!!######
+cores=1
+
 ##################
 ### Arguments ####
 ##################
