@@ -22,8 +22,8 @@ cores : 1
 # -f = output directory
 config: 
     - accortaxon='accession' #options : accession or taxonomy
-    - filename='workflow/testing-files/accession.txt' # Streptococcus dysgalactiae subsp. dysgalactiae and Streptococcus agalactiae , file of accessions or file of taxons
-    - outname=acc_interest #results will write into results/outname
+    - filename='workflow/testing-files/accessions.txt' # Streptococcus dysgalactiae subsp. dysgalactiae and Streptococcus agalactiae , file of accessions or file of taxons
+    - outname=acc_test #results will write into results/outname
     - roary_command='-r -p 30 -e --mafft -i 80 -cd 80 -f' #roary will run "roary {roary_command} $outdir .... "
     - only_download_complete_genomes='f' ##filter to only those whose assembly level = complete genomes, only options are t or f, case sensitive!! 
     - only_download_latest='f' #filter t only those whose version = latest, only options are t or f, case sensitive!!
@@ -49,27 +49,17 @@ config:
 #must be True!
 use-singularity: True
 
-#####################
-### Job and Rule Resources ###
-#####################
+#########################################################
+### These can also be adjusted! Job and Rule Resources ###
+#########################################################
 # Define the number of threads used by rules
-#set-threads:
-#  - make_table=1
-#  - get_interest_ftp=1
-#  - download_and_convert_gbff=1
-#  - run_roary=1
-  
-#set-resources: #adjust to make specific to rules !! make_table, get_interest_ftp, download_and_convert_gbff, run_roary
-#  - make_table:mem_mb=10000
-#  - make_table:runtime=00:12:00
-#  - get_interest_ftp:mem_mb=1000
-#  - get_interest_ftp:runtime=00:12:00
-#  - get_interest_ftp:mem_mb=1000
-#  - download_and_convert_gbff:runtime=00:12:00
-#  - download_and_convert_gbff:mem_mb=1000
-#  - run_roary:runtime=00:12:00
-#  - run_roary:mem_mb=1000
-# For some reasons time needs quotes to be read by snakemake
+set-threads:
+  - make_table=8
+  - download_gbff=8
+  - convert_gbff_and_fa=10
+  - abyss_fac=8
+  - add_abyss_to_master=1
+  - threads=8
 default-resources:
   - mem_mb=10000 #10000 MB = 10 GB
   - disk_mb=10000
@@ -78,6 +68,10 @@ default-resources:
   - cpus_per_task=1
   - nodes=8
   
+#set-resources: #adjust to make specific to rules !! make_table, get_interest_ftp, download_and_convert_gbff, run_roary
+
+
+
 
 
 
