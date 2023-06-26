@@ -1,0 +1,208 @@
+
+########### Configuration  #############
+
+configfile: "config/config.yaml" 
+
+outname=config["outname"]
+accortaxon=config["accortaxon"]
+filename=config["filename"]
+complete=config["only_download_complete_genomes"]
+latest=config["only_download_latest"]
+roary_command=config['roary_command'] 
+########################################
+    
+rule all:
+    input:
+        expand("results/{name}/roary/err.txt", name=config['outname']),
+        expand("results/{name}/roary/out.txt", name=config['outname'])
+        
+
+rule make_table: 
+    input:
+        script = "workflow/scripts/bit-adapted-assemble-wanted.sh"
+    output:
+        'results/{outname}/master.tsv',
+        'results/{outname}/for_download.txt'
+    threads: 
+        8
+    params: 
+        accortaxon={accortaxon},
+        filename={filename},
+        outname={outname},
+        complete={complete}, 
+        latest={latest}
+    #singularity:
+        #"docker://catgumag/pandas-scibioxl:latest"
+    shell:
+        """
+	    mkdir -p results
+	    mkdir -p results/{outname}
+	    
+        echo
+        echo "------------------------------"
+        echo "| 1/6 Starting make table... |"
+        echo "------------------------------"
+        echo 
+        
+        #for downloading data -- if needed
+        mkdir -p workflow/data
+        
+        bash {input.script} -w {params.filename} -f {params.accortaxon} -d results/{params.outname} -c {params.complete} -v {params.latest}
+        #file of accession or taxon IDs 
+        #accession or taxonomy 
+        #outdir 
+        #t or f : t = filter to only complete genomes
+        
+        cut -d "\t" -f9 results/{outname}/master.tsv > results/{outname}/for_download.txt
+        """
+        
+
+rule download_gbff:
+    input:
+        master_ftp = "results/{outname}/for_download.txt",
+        master = "results/{outname}/master.tsv"
+    output:
+        gbff_download = ("results/{outname}/summaries/gbff_sum.txt")
+    params: 
+        outname={outname}
+    threads: 
+        8
+    shell:
+        """
+        
+        echo 
+        echo "---------------------------------"
+        echo "| 2/6 Starting GBFF download... |"
+        echo "---------------------------------"
+        echo
+        
+        
+        gbff_dir="results/{params.outname}/gbff-downloads"
+        mkdir -p $gbff_dir
+        
+        bash workflow/scripts/bit-dl-ncbi-assemblies -f genbank -j {threads} -m {input.master} -d $gbff_dir
+        
+        mkdir -p results/{params.outname}/summaries/
+        ls $gbff_dir > {output.gbff_download}
+        
+        mv $gbff_dir/NCBI-accessions-not-downloaded.txt results/{params.outname}/NCBI-gbff-accessions-not-downloaded.txt
+        
+        #deleting uncompleted files due to server issues, gunzip -t tests file integrity
+        echo "Moving incomplete files....\n"
+        mkdir -p results/{params.outname}/incomplete_files
+        find $gbff_dir -type f -exec sh -c 'if ! gunzip -t "{{}}" >/dev/null 2>&1; then echo "{{}}" >> results/{params.outname}/incomplete_files.txt; echo "Moving: {{}}"; mv "{{}}" results/{params.outname}/incomplete_files; fi' \;
+        echo "Moved $(ls results/{params.outname}/incomplete_files | wc -l) of $(ls  $gbff_dir | wc -l) for incompletion."
+        """   
+        
+rule convert_gbff_and_fa:
+    input:
+        gb_to_gff3_script = "workflow/scripts/bp_genbank2gff3.pl",
+        gb_to_fa_script = "workflow/scripts/convert_gb_to_fa.pl",
+        gbff_summary = "results/{outname}/summaries/gbff_sum.txt"
+    output:
+        proc_summary = ("results/{outname}/summaries/convert.txt")
+    params: 
+        outname={outname}
+    threads: 
+        10
+    singularity:
+        "docker://bioperl/bioperl:latest"
+    shell:
+        """
+        
+        echo
+        echo "----------------------------------------------"
+        echo "| 3/6 Starting GBFF to GFF3/FA conversion... |"
+        echo "---------------------------------------------"
+        echo
+        
+        # Input file containing FTP paths, one per line
+        # Loop over each line in the input file
+        gbff_dir="results/{params.outname}/gbff-downloads"
+        processed_dir="results/{params.outname}/processed_files"
+        mkdir -p $processed_dir
+        
+        find $gbff_dir -name *.gz | xargs -n 1 -P {threads} bash -c ' perl {input.gb_to_gff3_script} "$@" --outdir $0 --quiet ; perl {input.gb_to_fa_script} "$@" $0 ' "$processed_dir" 
+        
+        ls $processed_dir > {output.proc_summary} 
+        """
+
+rule abyss_fac:
+    input:
+        master = "results/{outname}/master.tsv",
+        fna_summary = ("results/{outname}/summaries/convert.txt")
+    output:
+        abyss_out = "results/{outname}/abyss_fac_output.txt"
+    params: 
+        outname={outname}
+    singularity:
+        #"workflow/containers/abyss.sif"
+        "docker://pegi3s/abyss:latest"
+    shell:
+        '''
+        
+        echo 
+        echo "--------------------------------------"
+        echo "| 4/6 Starting abyss-fac analysis... |"
+        echo "--------------------------------------"
+        echo
+        
+        touch {output.abyss_out}
+        cd "results/{params.outname}/processed_files"
+        find . -name '*.fa' | xargs -n 1000 bash -c 'abyss-fac -t1 "$@" ' > "../../../{output.abyss_out}"
+        '''
+
+rule add_abyss_to_master:
+    input:
+        master = "results/{outname}/master.tsv",
+        abyss_out = "results/{outname}/abyss_fac_output.txt",
+        script = "workflow/scripts/join_abyss_fac_results.py"
+    output:
+        master_abyss = "results/{outname}/master_abyss.csv"
+    singularity:
+        "docker://catgumag/pandas-scibioxl:latest"
+    shell:
+        """
+        python3 {input.script} --master {input.master} --abyss_out {input.abyss_out} --result {output.master_abyss}
+
+        echo 
+        echo "-----------------------------------------------------"
+        echo "| 5/6 Add abyss fac results to master file... |"
+        echo "-----------------------------------------------------"
+        echo
+        
+        """
+
+
+rule run_roary:
+    input:
+        master_abyss = "results/{outname}/master_abyss.csv"
+    output:
+        err = "results/{outname}/roary/err.txt",
+        out = "results/{outname}/roary/out.txt"
+    params: 
+        outname={outname},
+        roary_command={roary_command}
+    threads: 
+        8
+    singularity:
+        "docker://sangerpathogens/roary:trusty"
+    shell:
+        """
+        
+        echo 
+        echo "-------------------------"
+        echo "| 6/6 Starting roary... |"
+        echo "-------------------------"
+        echo
+        
+        outdir='results/{outname}/roary'
+        mkdir -p $outdir
+        
+        echo "Running roary with command : roary {params.roary_command} $outdir results/{params.outname}/processed_files/*gff > {output.out} 2> {output.err}"
+        roary {params.roary_command} $outdir results/{params.outname}/processed_files/*gff > {output.out} 2> {output.err}
+        echo "Finished roary...\n"
+        echo "Check $outdir for feedback..."
+        """    
+ 
+
