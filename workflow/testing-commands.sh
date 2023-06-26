@@ -2,7 +2,7 @@ snakemake --profile config/  \
     --config \
         outname=acc_test\
         accortaxon=accession \
-        filename=testing-files/accessions.txt \
+        filename=workflow/testing-files/accessions.txt \
         only_download_complete_genomes=f \
         only_download_latest=f \
         roary_command='-r -p 30 -e --mafft -i 80 -cd 80 -f'
