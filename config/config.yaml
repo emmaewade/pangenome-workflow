@@ -8,10 +8,10 @@ printshellcmds: True
 rerun-incomplete: True
 
 ###Adjust this!!######
-cores=1
+cores : 1
 
 ##################
-### Arguments ####
+### Adjust this! Arguments ####
 ##################
 ## more information about assembly level and version here: https://www.ncbi.nlm.nih.gov/assembly/help/#:~:text=Genome%20representation%20-%20whether%20the%20goal%20for%20the,There%20may%20still%20be%20gaps%20in%20the%20assembly.
 # -r = create R plots 
@@ -30,7 +30,7 @@ config:
 ##################    
 
 ##########################
-### Cluster Submission ###
+### Adjust this if wanted! Cluster Submission ###
 ##########################
 #jobname: "{rule}.{jobid}"              # Provide a custom name for the jobscript that is submitted to the cluster.
 #max-jobs-per-second: 1                 #Maximal number of cluster/drmaa jobs per second, default is 10, fractions allowed.
