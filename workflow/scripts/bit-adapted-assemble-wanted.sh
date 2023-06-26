@@ -10,8 +10,8 @@ if [ "$#" == 0 ] || [ $1 == "-h" ] || [ $1 == "help" ]; then
 
 
     printf "\n --------------------------------  HELP INFO  --------------------------------- \n\n"
-    printf "  This program downloads assembly files for NCBI genomes. It takes as input\n"
-    printf "  assembly accessions (either GCA_* or GCF_*) and optionally a specification of\n"
+    printf "  This program curates assembly information for NCBI genomes. It takes as input\n"
+    printf "  assembly accessions (either GCA_* or GCF_*) or taxonomies and optionally a specification of\n"
     printf "  which format to download. For version info, run \`bit-version\`.\n\n"
 
     printf "    Required input:\n\n"
@@ -148,8 +148,8 @@ if [ -f "$NCBI_file" ]; then
             rm -rf $outdir/capture_any_dl_errors.tmp
         
             
-            printf "\n    ${YELLOW}Assembly summary tables downloaded successfully. They are stored\n"
-            printf "    in the directory workflow/data/ as \"ncbi_assembly_info.tsv\".\n"
+            printf "\n    ${YELLOW}NCBI taxonomy data downloaded successfully. It is stored\n"
+            printf "    in the directory workflow/data/.\n"
             printf "    That file is left here in you'd like to use it again soon. But be\n"
             printf "    sure to delete it if you'd like. Now getting to work on our targets.${NC}\n\n"
         
