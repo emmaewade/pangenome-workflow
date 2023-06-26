@@ -4,7 +4,7 @@
 ## Environment Setup
 Snakemake is best installed via the [Mamba package manager](https://github.com/mamba-org/mamba) (a drop-in replacement for conda). If you have neither Conda nor Mamba, it can be installed via [Mambaforge](https://github.com/conda-forge/miniforge#mambaforge). For other options see [here](https://github.com/mamba-org/mamba).
 
-Given that Mamba is installed, run the following command to make a conda environment including snakemake, singularity, and (if available) GNU parallel. 
+Given that Mamba is installed, run the following command to make a conda environment including snakemake, singularity, and GNU parallel. 
 
 ```
 mamba create -c conda-forge -c bioconda --name snakemake snakemake singularity parallel
