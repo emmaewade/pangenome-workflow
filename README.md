@@ -45,6 +45,7 @@ The workflow is given six arguments:
 
 Arguments and wanted cores can be adjusted in the configuration file **config/config.yaml** under *config:* and the workflow ran by 
 
+## Running
 ```
 snakemake --profile config/  
 ```
@@ -62,7 +63,7 @@ snakemake --profile config/  \
         roary_command='-r -p 30 -e --mafft -i 80 -cd 80 -f'
 ```
 
-To submit jobs through a cluster environment, uncomment and adjust the *cluster:* lines in **config/config.yaml** appropriate to your cluster. Then (edit, if necessary) make the config/parseJobID.sh config/status-saact.sh files executable: 
+To submit jobs to a job manager like SLURM, uncomment and adjust the *cluster:* lines in **config/config.yaml** appropriate to your cluster. Then edit (if necessary) and make the config/parseJobID.sh config/status-saact.sh files executable: 
 ```
 chmod +X config/parseJobID.sh config/status-sacct.sh 
 ```
