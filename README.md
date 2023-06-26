@@ -16,8 +16,11 @@ mamba activate snakemake
 
 First, create an appropriate project working directory on your system and enter it:
 
+```
 mkdir -p path/to/project-workdir
 cd path/to/project-workdir
+```
+
 In all following steps, we will assume that you are inside of that directory.
 
 Second, run
@@ -92,7 +95,8 @@ Additionally *assembly_summary_genbank.txt* , *assembly_summary_refseq.txt*,  *n
 ## Citations
 1. ABySS:
 2. Bit Package:
-3. Roary: 
+3. Roary:
+4. Snakemake:
 
 ## Please cite XXX at DOI: 
 
