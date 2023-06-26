@@ -48,7 +48,7 @@ Arguments and wanted cores can be adjusted in the configuration file **config/co
 ```
 snakemake --profile config/  
 ```
-or arguments can be set through the command line like so: 
+or command line arguments can override those in **config/config.yaml** like so: 
 
 ```
 snakemake --profile config/  \
