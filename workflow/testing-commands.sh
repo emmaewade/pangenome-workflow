@@ -11,7 +11,7 @@ snakemake --profile config/  \
     --config \
         outname=taxonomy_test \
         accortaxon=taxonomy \
-        filename=workflow/testing-files/taxonomy.txt \
+        filename=workflow/testing-files/taxons.txt \
         only_download_complete_genomes=f \
         only_download_latest=t \
         roary_command='-r -p 30 -e --mafft -i 80 -cd 80 -f'
