@@ -4,10 +4,12 @@
 ## Environment Setup
 Snakemake is best installed via the [Mamba package manager](https://github.com/mamba-org/mamba) (a drop-in replacement for conda). If you have neither Conda nor Mamba, it can be installed via [Mambaforge](https://github.com/conda-forge/miniforge#mambaforge). For other options see [here](https://github.com/mamba-org/mamba).
 
-Given that Mamba is installed, run the following command to make a conda environment including snakemake, singularity, and GNU parallel. 
+Given that Mamba is installed, run the following command to make a conda environment including snakemake, singularity, and GNU parallel. Activate your environment.
 
 ```
 mamba create -c conda-forge -c bioconda --name snakemake snakemake singularity parallel
+
+mamba activate snakemake
 ```
 
 ## Clone directory
@@ -41,7 +43,7 @@ The workflow is given six arguments:
 
 **roary_command** : command fed to roary. example: *'-r -p 30 -e --mafft -i 80 -cd 80 -f'*
 
-Arguments can be adjusted in the configuration file **config/config.yaml** under *config:* and the workflow ran by
+Arguments and wanted cores can be adjusted in the configuration file **config/config.yaml** under *config:* and the workflow ran by 
 
 ```
 snakemake --profile config/  
@@ -51,9 +53,9 @@ or arguments can be set through the command line like so:
 ```
 snakemake --profile config/  \
     --config \
-        outname=hae_inf_727 \
+        outname=taxonomy_test \
         accortaxon=taxonomy \
-        filename=workflow/testing-files/haemophilus.txt \
+        filename=workflow/testing-files/taxonomy.txt \
         only_download_complete_genomes=f \
         only_download_latest=t \
         roary_command='-r -p 30 -e --mafft -i 80 -cd 80 -f'
