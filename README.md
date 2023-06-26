@@ -69,7 +69,7 @@ chmod +x config/parseJobID.sh config/status-sacct.sh
 ```
 Run the workflow with the same commands as above. This time they will be submitted to your job manager. 
 
-A few example commands are available in *workflow/testing-taxon-ids.sh* for practice.
+A few example commands are available in *workflow/testing-commands.sh* for practice.
 
 ## Output
 After the workflow parses taxonomies (if necessary), download GBFF files, processes GFF and FASTA files, and runs ABySS and Roary, a number of files and directories will be created in the output directory results/*outname*.
