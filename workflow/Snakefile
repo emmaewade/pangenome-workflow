@@ -23,8 +23,6 @@ rule make_table:
     output:
         'results/{outname}/master.tsv',
         'results/{outname}/for_download.txt'
-    threads: 
-        8
     params: 
         accortaxon={accortaxon},
         filename={filename},
@@ -65,8 +63,6 @@ rule download_gbff:
         gbff_download = ("results/{outname}/summaries/gbff_sum.txt")
     params: 
         outname={outname}
-    threads: 
-        8
     shell:
         """
         
@@ -103,8 +99,6 @@ rule convert_gbff_and_fa:
         proc_summary = ("results/{outname}/summaries/convert.txt")
     params: 
         outname={outname}
-    threads: 
-        10
     singularity:
         "docker://bioperl/bioperl:latest"
     shell:
@@ -183,8 +177,6 @@ rule run_roary:
     params: 
         outname={outname},
         roary_command={roary_command}
-    threads: 
-        8
     singularity:
         "docker://sangerpathogens/roary:trusty"
     shell:
