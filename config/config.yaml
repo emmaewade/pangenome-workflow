@@ -18,12 +18,12 @@ rerun-incomplete: True
 # -cd = percentage of isolates a gene must be in to be core
 # -f = output directory
 config: 
-    - accortaxon='taxonomy' #options : accession or taxonomy
-    - filename='testing-files/actinobaculum.txt' # Streptococcus dysgalactiae subsp. dysgalactiae and Streptococcus agalactiae , file of accessions or file of taxons
-    - outname=act_shaali_59505 #results will write into results/outname
+    - accortaxon='accession' #options : accession or taxonomy
+    - filename='workflow/testing-files/accession.txt' # Streptococcus dysgalactiae subsp. dysgalactiae and Streptococcus agalactiae , file of accessions or file of taxons
+    - outname=acc_interest #results will write into results/outname
     - roary_command='-r -p 30 -e --mafft -i 80 -cd 80 -f' #roary will run "roary {roary_command} $outdir .... "
-    - only_download_complete_genomes='t' ##filter to only those whose assembly level = complete genomes, only options are t or f, case sensitive!! 
-    - only_download_latest='t' #filter t only those whose version = latest, only options are t or f, case sensitive!!
+    - only_download_complete_genomes='f' ##filter to only those whose assembly level = complete genomes, only options are t or f, case sensitive!! 
+    - only_download_latest='f' #filter t only those whose version = latest, only options are t or f, case sensitive!!
 ##################    
 
 ##########################
@@ -43,6 +43,7 @@ config:
 ###################
 ### Singularity ###
 ###################
+#must be True!
 use-singularity: True
 
 #####################
