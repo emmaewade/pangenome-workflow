@@ -31,6 +31,7 @@ config:
 
 ##################################################
 ### Adjust this if wanted! Cluster Submission ###
+## Don't forget to run chmod +x config/parseJobID.sh config/status-sacct.sh 
 #################################################
 #jobname: "{rule}.{jobid}"              # Provide a custom name for the jobscript that is submitted to the cluster.
 #max-jobs-per-second: 1                 #Maximal number of cluster/drmaa jobs per second, default is 10, fractions allowed.
