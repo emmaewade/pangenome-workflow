@@ -12,7 +12,7 @@ mamba create -c conda-forge -c bioconda --name snakemake snakemake singularity p
 mamba activate snakemake
 ```
 
-Ensure your snakemake version is > 7.0.0! Try `conda update snakemake` if it is the incorrect version.
+Ensure your snakemake version is > 7.0.0! Try `mamba update snakemake` if it is the incorrect version.
 
 ## Clone directory
 
@@ -99,8 +99,9 @@ Additionally *assembly_summary_genbank.txt* , *assembly_summary_refseq.txt*,  *n
 ## Citations
 1. ABySS:
 2. Bit Package:
-3. Roary:
-4. Snakemake:
+3. GNU Parallel: 
+4. Roary:
+5. Snakemake:
 
 ## Please cite XXX at DOI: 
 
