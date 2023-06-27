@@ -12,6 +12,8 @@ mamba create -c conda-forge -c bioconda --name snakemake snakemake singularity p
 mamba activate snakemake
 ```
 
+Ensure your snakemake version is > 7.0.0! Try `conda update snakemake` if it is the incorrect version.
+
 ## Clone directory
 
 First, create an appropriate project working directory on your system and enter it:
